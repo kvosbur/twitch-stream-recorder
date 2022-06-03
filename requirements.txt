@@ -1,0 +1,5 @@
+requests
+streamlink
+prettyprint
+opencv-python
+pyautogui
