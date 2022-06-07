@@ -5,8 +5,14 @@ import time
 import threading
 import subprocess
 import shutil
+import cProfile
+import pstats
+from pstats import SortKey
+import queue
 
 saved_stdout = open("my_output", "w")
+shoot_stream = "https://twitch.tv/shoot2thr1ll284"
+temp_stream = "https://www.twitch.tv/shivfps"
 
 wanted_stream = '1080p60'
 
@@ -65,25 +71,35 @@ def get_frame():
     print("timing:", after - begin, file=saved_stdout, flush=True)
 
 
-def get_stream_data():
-    streams = streamlink.streams("https://twitch.tv/shoot2thr1ll284")
+def get_stream_data(q):
+    streams = streamlink.streams(shoot_stream)
 
     my_stream = streams[wanted_stream]
     count = 0
 
-    with my_stream.open() as f:
-        while True:
-            data = f.read(1000000)
-            if os.path.isfile("temp.mp4"):
-                shutil.copyfile("temp.mp4", os.path.join("mp4", f"stream{count}.mp4"))
-            with open("temp.mp4", 'ab') as g:
-                g.write(data)
-            count += 1
+    with open("temp.mp4", 'ab') as g:
+        with my_stream.open() as f:
+            while q.qsize() == 0:
+                g.write(f.read(1000000))
+                count += 1
 
 
-t = threading.Thread(target=get_stream_data)
-t.start()
 
-for i in range(30):
-    time.sleep(2)
-    get_frame()
+
+def main():
+    q = queue.Queue()
+    t = threading.Thread(target=get_stream_data, args=(q,))
+    t.start()
+
+    for i in range(3):
+        time.sleep(2)
+        get_frame()
+    q.put(1)
+
+
+profile_result_file = "results"
+print("Running profiler")
+cProfile.run('main()', profile_result_file)
+
+p = pstats.Stats(profile_result_file)
+p.strip_dirs().sort_stats(SortKey.CUMULATIVE).print_stats()
