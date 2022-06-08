@@ -77,3 +77,4 @@ config.py
 __pycache__
 data
 mp4
+result_images

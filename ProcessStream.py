@@ -91,7 +91,7 @@ def main():
     t = threading.Thread(target=get_stream_data, args=(q,))
     t.start()
 
-    for i in range(15):
+    for i in range(8):
         time.sleep(2)
         get_frame()
     q.put(1)
