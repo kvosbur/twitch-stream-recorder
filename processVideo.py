@@ -7,6 +7,15 @@ import streamlink
 import threading
 import queue
 
+def remove_file_if_exists(file):
+    if os.path.exists(file):
+        os.remove(file)
+
+def clear_folder(folder):
+    if os.path.exists(folder):
+        shutil.rmtree(folder)
+    os.mkdir(folder)
+
 class FFMPEGReader():
 
     seek_time = 0  # second to seek to
@@ -49,6 +58,20 @@ class FileTracker:
         self.output_directory = output_directory
         self.end_queue = end_queue
 
+    def move_file(self, source, dest):
+        try:
+            shutil.move(source, dest)
+        except:
+            time.sleep(0.05)
+            self.move_file(source, dest)
+
+    def remove_file(self, file):
+        try:
+            os.remove(file)
+        except:
+            time.sleep(0.05)
+            self.remove_file(file)
+
     def work(self):
         skip_frames = self.frame_count > 6
         print("skip framges, count", skip_frames, self.frame_count)
@@ -64,14 +87,13 @@ class FileTracker:
                 if os.path.exists(next_file):
                     # delete first file found since it is duplicate of second
                     if iteration_count == 1 or (skip_frames and iteration_count <= 6):
-                        time.sleep(0.1)
-                        os.remove(next_file)
+                        self.remove_file(next_file)
                         iteration_count += 1
                         continue
 
                     # move file to destination to be processed
                     new_file_name = os.path.join(self.output_directory, f"{self.frame_count:05}.jpg")
-                    shutil.move(next_file, new_file_name)
+                    self.move_file(next_file, new_file_name)
                     self.frame_count += 1
                     iteration_count += 1
                     print("MOVED", next_file, " TO ", new_file_name)
@@ -107,8 +129,13 @@ def get_stream_data(q):
 
 
 def stop_all(q):
-    time.sleep(120)
+    time.sleep(120*60)
     q.put(1)
+
+
+remove_file_if_exists("temp.mp4")
+clear_folder("data")
+clear_folder("result_images")
 
 
 q = queue.Queue()
